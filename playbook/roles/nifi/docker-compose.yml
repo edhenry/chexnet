@@ -1,0 +1,16 @@
+---
+
+version: '2'
+services:
+  nifi:
+    image: apache/nifi
+    ports:
+      - "8080"
+    networks: 
+      - kafka_data-stack-net
+
+# TODO : custom linkage between docker-compose files for NiFi and Kafka
+# Need to break this out into separate logic at some point or another
+networks: 
+    kafka_data-stack-net:
+        external: true

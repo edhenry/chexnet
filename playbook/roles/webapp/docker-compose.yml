@@ -1,0 +1,14 @@
+---
+
+version: '2'
+services:
+  xraywebapp:
+    image: xray-webapp
+    ports:
+      - "9220"
+    networks:
+      - kafka_data-stack-net
+    
+networks: 
+    kafka_data-stack-net:
+        external: true

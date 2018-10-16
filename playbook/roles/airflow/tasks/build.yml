@@ -1,0 +1,10 @@
+---
+
+- name: Start Airflow service
+  docker_service:
+    project_src: roles/airflow
+    build: no
+    state: present
+  register: airflow
+
+- debug: var=airflow

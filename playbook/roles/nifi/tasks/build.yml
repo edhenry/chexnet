@@ -1,0 +1,56 @@
+---
+
+- name: Start NiFi service
+  docker_service:
+    project_src: roles/nifi
+    build: no
+    state: present
+  register: nifi
+
+- name: Wait for NiFi Services to start
+  wait_for: timeout=30
+
+- name: Collect Process Group UUID
+  uri:
+    url: http://{{ ansible_facts['nifi']['nifi_nifi_1']['networks']['kafka_data-stack-net']['IPAddress'] }}:8080/nifi-api/flow/client-id
+    return_content: yes
+  register: pg
+
+# - name: Upload Kafka File Pipeline
+#   shell: curl -iv -F template=@{{ kafka_file_template }} -X POST http://{{ ansible_facts['nifi']['nifi_nifi_1']['networks']['kafka_data-stack-net']['IPAddress'] }}:8080/nifi-api/process-groups/{{ pg['content'] }}/templates/upload
+
+# - name: Post the Kafka Template to the NiFi API
+#   uri:
+#     url: http://{{ ansible_facts['nifi']['nifi_nifi_1']['networks']['kafka_data-stack-net']['IPAddress'] }}:8080/nifi-api/process-groups/{{ pg['content'] }}/templates/upload
+#     method: POST
+#     body_format: raw
+#     headers:
+#       "Content-Type": application/x-www-form-urlencoded
+#     src: Kafka_File_Pipe.xml
+
+
+- debug: var=pg['content']
+# - debug:
+#     msg: "{{ ansible_facts['nifi']['nifi_nifi_1']['networks']['kafka_data-stack-net']['IPAddress'] }}"
+
+# - name: Collect Process Group UUID
+#   uri:
+#     url: http://
+
+#- name: Post XML Template to nifi endpoint
+
+# TODO : Enable programmatic upload of nifi template
+# API endpoint that returns the UUID for this
+# http://<ip>:<port>/nifi-api/flow/client-id
+# we can use this UUID when attempting to post a template XML file
+
+# TODO: Implement post to NiFi API to get around manual upload
+# - name: Push Kafka Template
+#   uri:
+#     url: http://nifi-host:nifi-port/nifi-api/controller/templates
+#     method: POST
+#     body: "template=@my_nifi_template.xml"
+
+# found the curl command 
+# curl -iv -F template=@Kafka_File_Pipe.xml -X POST http://172.23.0.6:8080/nifi-api/process-groups/5a8e1de3-0166-1000-8c25-2e30a91ec27a/templates/upload
+# convert to URI module above

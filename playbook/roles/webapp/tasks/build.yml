@@ -1,0 +1,7 @@
+---
+
+- name: Start X-Ray Web service
+  docker_service:
+    project_src: roles/webapp
+    build: no
+    state: present

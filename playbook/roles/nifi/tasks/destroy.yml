@@ -1,0 +1,7 @@
+---
+
+- name: Remove NiFi service
+  docker_service:
+    project_src: roles/nifi
+    build: no
+    state: absent
