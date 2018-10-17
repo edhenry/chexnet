@@ -31,7 +31,7 @@ class MultiClassAUROC(Callback):
             "best_auroc.log"
         )
         self.stats_output_path = os.path.join(
-            os.path.splot(weihts_path)[0],
+            os.path.split(weights_path)[0],
             ".training_stats.json"
         )
 

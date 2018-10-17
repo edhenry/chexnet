@@ -93,141 +93,141 @@ def main():
                 """)
             print(f" <<< train_steps : {train_steps} >>>")
 
-            if validation_steps == "auto":
-                validation_steps = int(validation_counts / batch_size)
+        if validation_steps == "auto":
+            validation_steps = int(validation_counts / batch_size)
+        else:
+            try:
+                validation_steps = int(validation_steps)
+            except:
+                raise ValueError(f"""
+                validation_steps : {validation_steps} is invalid,
+                please use 'auto' or specify an integer.
+                """)
+        print(f" <<< validation_steps : {validation_steps} >>>")
+
+        # class weights
+        class_weights = utility.get_class_weights(
+            train_counts,
+            train_pos_counts,
+            multiply=positive_weights_multiply,
+        )
+        print(f"class_weights : {class_weights}")
+
+        print(" <<< Loading Model >>>")
+        if use_trained_model_weights:
+            if use_best_weights:
+                model_weights_file = os.path.join(output_directory, f"best_{output_weights_name}")
             else:
-                try:
-                    validation_steps = int(validation_steps)
-                except:
-                    raise ValueError(f"""
-                    validation_steps : {validation_steps} is invalid,
-                    please use 'auto' or specify an integer.
-                    """)
-            print(f" <<< validation_steps : {validation_steps} >>>")
+                model_weights_file = os.path.join(output_directory, output_weights_name)
+        else:
+            model_weights_file = None
+        
+        model_factory = modelwrap.Models()
+        model = model_factory.get_model(
+            class_names=class_names,
+            use_base_weights=use_base_model_weights,
+            weights_path=model_weights_file,
+            input_shape=(image_dimension,image_dimension,3)
+        )
 
-            # class weights
-            class_weights = utility.get_class_weights(
-                train_counts,
-                train_pos_counts,
-                multiply=positive_weights_multiply,
-            )
-            print(f"class_weights : {class_weights}")
+        if show_model_summary:
+            print(model.summary())
+        
+        print(" <<< Creating Image Generators >>> ")
+        train_sequence = generator.AugmentedImageSequence(
+            dataset_csv_file=os.path.join(output_directory, "train.csv"),
+            class_names=class_names,
+            source_image_dir=image_source_directory,
+            batch_size=batch_size,
+            target_size=(image_dimension, image_dimension),
+            augmenter=utility.augmenter(),
+            steps=train_steps,
+        )
+        
+        validation_sequence = generator.AugmentedImageSequence(
+            dataset_csv_file=os.path.join(output_directory, "validation.csv"),
+            class_names=class_names,
+            source_image_dir=image_source_directory,
+            batch_size=batch_size,
+            target_size=(image_dimension, image_dimension),
+            augmenter=utility.augmenter(),
+            steps=validation_steps,
+            shuffle_on_epoch_end=False,
+        )
 
-            print(" <<< Loading Model >>>")
-            if use_trained_model_weights:
-                if use_best_weights:
-                    model_weights_file = os.path.join(output_directory, f"best_{output_weights_name}")
-                else:
-                    model_weights_file = os.path.join(output_directory, output_weights_name)
-            else:
-                model_weights_file = None
-            
-            model_factory = modelwrap.Models()
-            model = model_factory.get_model(
-                class_names=class_names,
-                use_base_weights=use_base_model_weights,
-                weights_path=model_weights_file,
-                input_shape=(image_dimension,image_dimension,3)
-            )
+        output_weights_path = os.path.join(output_directory, output_weights_name)
+        print(f" <<< Set Output Weights Path to : {output_weights_path}")
 
-            if show_model_summary:
-                print(model.summary())
-            
-            print(" <<< Creating Image Generators >>> ")
-            train_sequence = generator.AugmentedImageSequence(
-                dataset_csv_dir=os.path.join(output_directory, "train.csv"),
-                class_names=class_names,
-                source_image_dir=image_source_directory,
-                batch_size=batch_size,
-                target_size=(image_dimension, image_dimension),
-                augmenter=augmenter,
-                steps=train_steps,
-            )
-            
-            validation_sequence = generator.AugmentedImageSequence(
-                dataset_csv_dir=os.path.join(output_directory, "validation.csv"),
-                class_names=class_names,
-                source_image_dir=image_source_directory,
-                batch_size=batch_size,
-                target_size=(image_dimension, image_dimension),
-                augmenter=augmenter,
-                steps=validation_steps,
-                shuffle_on_epoch_end=False,
-            )
+        # TODO implement multi-gpu support
 
-            output_weights_path = os.path.join(output_directory, output_weights_name)
-            print(f" <<< Set Output Weights Path to : {output_weights_path}")
+        model_train = model
+        checkpoint = ModelCheckpoint(
+            output_weights_path,
+            save_weights_only=True,
+            save_best_only=True,
+            verbose=1
+        )
 
-            # TODO implement multi-gpu support
+        print(" <<< Compile model and class weights >>>")
+        optimizer = Adam(lr=initial_learning_rate)
+        model_train.compile(
+            optimizer=optimizer, loss="binary_crossentropy"
+        )
 
-            model_train = model
-            checkpoint = ModelCheckpoint(
-                output_weights_path,
-                save_weights_only=True,
-                save_best_only=True,
-                verbose=1
-            )
+        auroc = MultiClassAUROC(
+            sequence=validation_sequence,
+            class_names=class_names,
+            weights_path=output_weights_path,
+            stats=training_stats,
+            workers=generator_workers,
+        )
 
-            print(" <<< Compile model and class weights >>>")
-            optimizer = Adam(lr=initial_learning_rate)
-            model_train.compile(
-                optimizer=optimizer, loss="binary_crossentropy"
-            )
+        callbacks =[
+            checkpoint,
+            TensorBoard(log_dir=os.path.join(output_directory, "logs"), batch_size=batch_size),
+            ReduceLROnPlateau(monitor='validation_loss', factor=0.1, patience=patience_reduce_lr,
+                            verbose=1, mode="min", min_lr=min_learning_rate),
+            auroc
+        ]
 
-            auroc = MultiClassAUROC(
-                sequence=validation_sequence,
-                class_names=class_names,
-                weights_path=output_weights_path,
-                stats=training_stats,
-                workers=generator_workers,
-            )
+        # TODO Implement training loop (l00ps br0ther)    
+        print(" <<< Starting Model Training >>> ")
+        history = model_train.fit_generator(
+            generator=train_sequence,
+            steps_per_epoch=train_steps,
+            epochs=epochs,
+            validation_data=validation_sequence,
+            validation_steps=validation_steps,
+            callbacks=callbacks,
+            class_weight=class_weights,
+            workers=generator_workers,
+            shuffle=False,
+        )
 
-            callbacks =[
-                checkpoint,
-                TensorBoard(log_dir=os.path.join(output_directory, "logs"), batch_size=batch_size),
-                ReduceLROnPlateau(monitor='validation_loss', factor=0.1, patience=patience_reduce_lr,
-                                verbose=1, mode="min", min_lr=min_lr),
-                auroc
-            ]
+        # define a bunch of model export vals
+        serialized_tf_example = tf.placeholder(tf.string, name='CheXnet_example')
+        feature_configs = {'x': tf.FixedLenFeature(shape=[50176], dtype=tf.float32)}
+        tf_example = tf.parse_example()
 
-            # TODO Implement training loop (l00ps br0ther)    
-            print(" <<< Starting Model Training >>> ")
-            history = model_train.fit_generator(
-                generator=train_sequence,
-                steps_per_epoch=train_steps,
-                epochs=epochs,
-                validation_data=validation_sequence,
-                validation_steps=validation_steps,
-                callbacks=callbacks,
-                class_weights=class_weights,
-                workers=generator_workers,
-                shuffle=False,
-            )
+        # export model for serving
+        export_base_path = output_directory
+        export_path = os.path.join(
+            tf.compat.as_bytes(export_base_path),
+            tf.compat.as_bytes(str(FLAGS.model_version))
+        )
+        print(f" <<< Exporting Trained Model To {export_path} >>> ")
+        builder = tf.saved_model_builder.SavedModelBuilder(export_path)
 
-            # define a bunch of model export vals
-            serialized_tf_example = tf.placeholder(tf.string, name='CheXnet_example')
-            feature_configs = {'x': tf.FixedLenFeature(shape=[50176], dtype=tf.float32)}
-            tf_example = tf.parse_example()
+        # build signiture_definition_map
+        classification_inputs = tf.saved_model.utils.build_tensor_info()
 
-            # export model for serving
-            export_base_path = output_directory
-            export_path = os.path.join(
-                tf.compat.as_bytes(export_base_path),
-                tf.compat.as_bytes(str(FLAGS.model_version))
-            )
-            print(f" <<< Exporting Trained Model To {export_path} >>> ")
-            builder = tf.saved_model_builder.SavedModelBuilder(export_path)
-
-            # build signiture_definition_map
-            classification_inputs = tf.saved_model.utils.build_tensor_info()
-
-            print(" <<< Export History >>>")
-            with open(os.path.join(output_directory, "history.pkl"), "wb") as f:
-                pickle.dump({
-                    "history": history.history,
-                    "auroc": auroc.aurocs,
-                }, f)
-            print(" <<< Export Complete! >>> ")
+        print(" <<< Export History >>>")
+        with open(os.path.join(output_directory, "history.pkl"), "wb") as f:
+            pickle.dump({
+                "history": history.history,
+                "auroc": auroc.aurocs,
+            }, f)
+        print(" <<< Export Complete! >>> ")
 
     finally:
         utility.delete_training_lock(output_directory)
