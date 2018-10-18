@@ -5,8 +5,10 @@ import shutil
 import warnings
 
 import keras.backend as kb
+from keras.models import Model
 from keras.callbacks import Callback
 from sklearn.metrics import roc_auc_score
+import tensorflow as tf
 
 class MultiClassAUROC(Callback):
     """Class to monitor the Area Under Receiver Operator Curve (AUROC) and
@@ -185,3 +187,49 @@ class MultiGPUModelCheckpoint(Callback):
                     self.base_model.save_weights(filepath, overwrite=True)
                 else:
                     self.base_model.save(filepath, overwrite=True)
+
+class ServingCheckpoint(Callback):
+    """Extending Checkpoint functionalty to allow for model checkpointing
+    using TensorFlow SavedModelBuilder for serving models with TensorFlow
+    
+    Arguments:
+        Callback {[type]} -- [description]
+    """
+    def __init__(self, output_directory: str, model: Model, model_version: int,
+                 ):
+        super(ServingCheckpoint, self).__init__()
+        self.output_directory = output_directory
+        self.model = model
+        self.model_version = model_version
+    
+    def on_epoch_end(self, epoch, logs=None):
+        """
+        Extension of Checkpoint callback method on_epoch_end
+        
+        Arguments:
+            epoch {int} -- epoch number
+        
+        Keyword Arguments:
+            logs {[type]} -- [description] (default: {None})
+        """
+        export_base_path = self.output_directory
+        export_path = os.path.join(
+            tf.compat.as_bytes(export_base_path),
+            tf.compat.as_bytes(self.model_version)
+        )
+
+        # signature_definition_map
+        prediction_signature = tf.saved_model.signature_def_utils.predict_signature_def({"image": self.model.input}, {"prediction": self.model.output})
+
+        builder = tf.saved_model.builder.SavedModelBuilder(export_path)
+
+        with kb.get_session() as sess:
+            builder.add_meta_graph_and_variables(
+                sess=sess,
+                tags=[tf.saved_model.tag_constants.SERVING],
+                signature_def_map={"predict": prediction_signature}
+            )
+            builder.save()
+        
+
+
