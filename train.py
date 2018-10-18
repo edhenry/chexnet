@@ -2,7 +2,7 @@ import json
 import shutil
 import os
 import pickle
-from callback import MultiClassAUROC, MultiGPUModelCheckpoint
+from callback import MultiClassAUROC, MultiGPUModelCheckpoint, ServingCheckpoint
 from configparser import ConfigParser
 import generator
 import keras.backend as K
@@ -184,13 +184,19 @@ def main():
             workers=generator_workers,
         )
 
+        # serving_checkpoint = ServingCheckpoint(
+        #     output_directory=output_directory,
+        #     model=model,
+        #     model_version=model_version,
+        # )
+
         callbacks =[
             checkpoint,
             TensorBoard(log_dir=os.path.join(output_directory, "logs"), batch_size=batch_size),
             ReduceLROnPlateau(monitor='validation_loss', factor=0.1, patience=patience_reduce_lr,
                             verbose=1, mode="min", min_lr=min_learning_rate),
             auroc
-        ]
+            ]
 
         # TODO Implement training loop (l00ps br0ther)    
         print(" <<< Starting Model Training >>> ")
@@ -215,15 +221,9 @@ def main():
         # signiture defn map
         prediction_signature = tf.saved_model.signature_def_utils.predict_signature_def({"image": model_train.input}, {"prediction": model_train.output})
 
-        print(f" <<< Exporting Trained Model To {export_path} >>> ")
+        print(f" <<< Exporting Trained Model to {export_path} >>> ")
         builder = tf.saved_model.builder.SavedModelBuilder(export_path)
-        # builder.add_meta_graph_and_variables(
-        #     model_train, [tf.saved_model.tag_constants.SERVING],
-        #     signature_def_map={
-        #         tf.saved_model.signature_constants.DEFAULT_SERVING_SIGNATURE_DEF_KEY:
-        #             prediction_signature,
-        #     },
-        #     main_op=legacy_init_op)
+
         with K.get_session() as sess:
             builder.add_meta_graph_and_variables(
                 sess=sess, 
