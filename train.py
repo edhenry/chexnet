@@ -5,6 +5,7 @@ import pickle
 from callback import MultiClassAUROC, MultiGPUModelCheckpoint
 from configparser import ConfigParser
 import generator
+import keras.backend as K
 from keras.callbacks import ModelCheckpoint, TensorBoard, ReduceLROnPlateau
 from keras.optimizers import Adam
 from keras.utils import multi_gpu_model
@@ -30,6 +31,7 @@ def main():
     base_model_name = cp["DEFAULT"].get("base_model_name")
     # Class names are passed in as array within the configuration script
     class_names = cp["DEFAULT"].get("class_names").split(",")
+    model_version = cp["DEFAULT"].get("model_version")
 
     # training configuration
     # See sample_config.ini for explanation of all of the parameters
@@ -204,22 +206,31 @@ def main():
             shuffle=False,
         )
 
-        # define a bunch of model export vals
-        serialized_tf_example = tf.placeholder(tf.string, name='CheXnet_example')
-        feature_configs = {'x': tf.FixedLenFeature(shape=[50176], dtype=tf.float32)}
-        tf_example = tf.parse_example()
-
         # export model for serving
         export_base_path = output_directory
         export_path = os.path.join(
             tf.compat.as_bytes(export_base_path),
-            tf.compat.as_bytes(str(FLAGS.model_version))
+            tf.compat.as_bytes(model_version)
         )
-        print(f" <<< Exporting Trained Model To {export_path} >>> ")
-        builder = tf.saved_model_builder.SavedModelBuilder(export_path)
+        # signiture defn map
+        prediction_signature = tf.saved_model.signature_def_utils.predict_signature_def({"image": model_train.input}, {"prediction": model_train.output})
 
-        # build signiture_definition_map
-        classification_inputs = tf.saved_model.utils.build_tensor_info()
+        print(f" <<< Exporting Trained Model To {export_path} >>> ")
+        builder = tf.saved_model.builder.SavedModelBuilder(export_path)
+        # builder.add_meta_graph_and_variables(
+        #     model_train, [tf.saved_model.tag_constants.SERVING],
+        #     signature_def_map={
+        #         tf.saved_model.signature_constants.DEFAULT_SERVING_SIGNATURE_DEF_KEY:
+        #             prediction_signature,
+        #     },
+        #     main_op=legacy_init_op)
+        with K.get_session() as sess:
+            builder.add_meta_graph_and_variables(
+                sess=sess, 
+                tags=[tf.saved_model.tag_constants.SERVING],
+                signature_def_map={'predict': prediction_signature}
+            )
+            builder.save()
 
         print(" <<< Export History >>>")
         with open(os.path.join(output_directory, "history.pkl"), "wb") as f:
