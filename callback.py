@@ -6,7 +6,7 @@ import warnings
 
 import keras.backend as kb
 from keras.models import Model
-from keras.callbacks import Callback
+from keras.callbacks import Callback, ModelCheckpoint
 from sklearn.metrics import roc_auc_score
 import tensorflow as tf
 
@@ -193,7 +193,7 @@ class ServingCheckpoint(Callback):
     using TensorFlow SavedModelBuilder for serving models with TensorFlow
     
     Arguments:
-        Callback {[type]} -- [description]
+        Callback {keras.callbacks.Callback} -- Callback class within Keras framework
     """
     def __init__(self, output_directory: str, model: Model, model_version: int,
                  ):
@@ -229,7 +229,7 @@ class ServingCheckpoint(Callback):
                 tags=[tf.saved_model.tag_constants.SERVING],
                 signature_def_map={"predict": prediction_signature}
             )
-            builder.save()
+        builder.save()
         
 
 

@@ -193,12 +193,11 @@ def main():
         callbacks =[
             checkpoint,
             TensorBoard(log_dir=os.path.join(output_directory, "logs"), batch_size=batch_size),
-            ReduceLROnPlateau(monitor='validation_loss', factor=0.1, patience=patience_reduce_lr,
+            ReduceLROnPlateau(monitor='val_loss', factor=0.1, patience=patience_reduce_lr,
                             verbose=1, mode="min", min_lr=min_learning_rate),
-            auroc
+            auroc,
             ]
 
-        # TODO Implement training loop (l00ps br0ther)    
         print(" <<< Starting Model Training >>> ")
         history = model_train.fit_generator(
             generator=train_sequence,
