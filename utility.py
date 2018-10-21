@@ -137,3 +137,11 @@ def build_datasets(dataset_csv_dir: str, output_directory: str):
     
     return
 
+def create_tensorboard_log_dir(tensorboard_log_dir: str) -> bool:
+    """Create a directory in local /var/logs filesystem
+    """
+
+    if not os.path.isdir(tensorboard_log_dir):
+        os.makedirs(tensorboard_log_dir)
+        return True
+    return False

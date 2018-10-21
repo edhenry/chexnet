@@ -2,7 +2,7 @@ import json
 import shutil
 import os
 import pickle
-from callback import MultiClassAUROC, MultiGPUModelCheckpoint, ServingCheckpoint
+from callback import MultiClassAUROC, MultiGPUModelCheckpoint
 from configparser import ConfigParser
 import generator
 import keras.backend as K
@@ -32,6 +32,7 @@ def main():
     # Class names are passed in as array within the configuration script
     class_names = cp["DEFAULT"].get("class_names").split(",")
     model_version = cp["DEFAULT"].get("model_version")
+    tensorboard_log_dir = cp["DEFAULT"].get("tensorboard_log_dir")
 
     # training configuration
     # See sample_config.ini for explanation of all of the parameters
@@ -66,6 +67,7 @@ def main():
     # end configuration parser
 
     utility.check_create_output_dir(output_directory)
+    utility.create_tensorboard_log_dir(tensorboard_log_dir)
     
     try:
 
@@ -192,8 +194,8 @@ def main():
 
         callbacks =[
             checkpoint,
-            TensorBoard(log_dir=os.path.join(output_directory, "logs"), batch_size=batch_size),
-            ReduceLROnPlateau(monitor='validation_loss', factor=0.1, patience=patience_reduce_lr,
+            TensorBoard(log_dir=os.path.join(tensorboard_log_dir), batch_size=batch_size),
+            ReduceLROnPlateau(monitor='val_loss', factor=0.1, patience=patience_reduce_lr,
                             verbose=1, mode="min", min_lr=min_learning_rate),
             auroc
             ]
