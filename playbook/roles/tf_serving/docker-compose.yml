@@ -1,0 +1,18 @@
+---
+
+version: '2'
+services:
+  nifi:
+    image: tensorflow/serving
+    ports:
+      - "8500"
+    networks: 
+      - kafka_data-stack-net
+    volumes:
+      - /home/ed/Documents/code/chexnet/experiments/one:/models/one
+
+# TODO : custom linkage between docker-compose files for NiFi and Kafka
+# Need to break this out into separate logic at some point or another
+networks: 
+    kafka_data-stack-net:
+        external: true

@@ -1,0 +1,8 @@
+---
+
+- name: Start Tf Serving service
+  docker_service:
+    project_src: roles/tf_serving
+    build: no
+    state: present
+  register: tf_serving
