@@ -2,24 +2,16 @@
 
 version: '2'
 services:
-<<<<<<< HEAD
   tf_serving:
-=======
-  nifi:
->>>>>>> e32c0d24ac01dd7f23db6269b8f369226e5c6504
     image: tensorflow/serving
     ports:
       - "8500"
     networks: 
       - kafka_data-stack-net
     volumes:
-<<<<<<< HEAD
       - /home/ed/Documents/code/chexnet/experiments/DenseNet121/2/:/models/DenseNet121
     environment:
       MODEL_NAME: "DenseNet121"
-=======
-      - /home/ed/Documents/code/chexnet/experiments/one:/models/one
->>>>>>> e32c0d24ac01dd7f23db6269b8f369226e5c6504
 
 # TODO : custom linkage between docker-compose files for NiFi and Kafka
 # Need to break this out into separate logic at some point or another
