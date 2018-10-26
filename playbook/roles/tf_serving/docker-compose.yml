@@ -1,0 +1,20 @@
+---
+
+version: '2'
+services:
+  tf_serving:
+    image: tensorflow/serving
+    ports:
+      - "8500"
+    networks: 
+      - kafka_data-stack-net
+    volumes:
+      - /home/ed/Documents/code/chexnet/experiments/DenseNet121/2/:/models/DenseNet121
+    environment:
+      MODEL_NAME: "DenseNet121"
+
+# TODO : custom linkage between docker-compose files for NiFi and Kafka
+# Need to break this out into separate logic at some point or another
+networks: 
+    kafka_data-stack-net:
+        external: true

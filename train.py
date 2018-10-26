@@ -28,6 +28,7 @@ def main():
     # set a bunch of default config
     output_directory = cp["DEFAULT"].get("output_directory")
     image_source_directory = cp["DEFAULT"].get("image_source_directory")
+    # TODO tie in base model name for model verioning for SavedModels
     base_model_name = cp["DEFAULT"].get("base_model_name")
     # Class names are passed in as array within the configuration script
     class_names = cp["DEFAULT"].get("class_names").split(",")
@@ -46,7 +47,8 @@ def main():
     generator_workers = cp["TRAIN"].getint("generator_workers")
     image_dimension = cp["TRAIN"].getint("image_dimension")
     train_steps = cp["TRAIN"].get("train_steps")
-    patience_reduce_lr = cp["TRAIN"].getint("reduce_learning_rate")
+    patience_reduce_lr = cp["TRAIN"].getint("patience_reduce_lr")
+    print(f"{patience_reduce_lr}", type(patience_reduce_lr))
     min_learning_rate = cp["TRAIN"].getfloat("min_learning_rate")
     validation_steps = cp["TRAIN"].get("validation_steps")
     positive_weights_multiply = cp["TRAIN"].getfloat("positive_weights_multiply")
@@ -197,10 +199,9 @@ def main():
             TensorBoard(log_dir=os.path.join(tensorboard_log_dir), batch_size=batch_size),
             ReduceLROnPlateau(monitor='val_loss', factor=0.1, patience=patience_reduce_lr,
                             verbose=1, mode="min", min_lr=min_learning_rate),
-            auroc
+            auroc,
             ]
 
-        # TODO Implement training loop (l00ps br0ther)    
         print(" <<< Starting Model Training >>> ")
         history = model_train.fit_generator(
             generator=train_sequence,
