@@ -1,7 +1,7 @@
 ---
 
-- name: Remove NiFi service
+- name: Remove TF Serving service
   docker_service:
-    project_src: roles/nifi
+    project_src: roles/tf_serving
     build: no
     state: absent
