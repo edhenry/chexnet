@@ -1,7 +1,13 @@
 ---
 
+<<<<<<< HEAD
 - name: Remove TF Serving service
   docker_service:
     project_src: roles/tf_serving
+=======
+- name: Remove NiFi service
+  docker_service:
+    project_src: roles/nifi
+>>>>>>> e32c0d24ac01dd7f23db6269b8f369226e5c6504
     build: no
     state: absent

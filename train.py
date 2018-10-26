@@ -196,7 +196,11 @@ def main():
 
         callbacks =[
             checkpoint,
+<<<<<<< HEAD
             TensorBoard(log_dir=os.path.join(tensorboard_log_dir), batch_size=batch_size),
+=======
+            TensorBoard(log_dir=os.path.join(output_directory, "logs"), batch_size=batch_size),
+>>>>>>> e32c0d24ac01dd7f23db6269b8f369226e5c6504
             ReduceLROnPlateau(monitor='val_loss', factor=0.1, patience=patience_reduce_lr,
                             verbose=1, mode="min", min_lr=min_learning_rate),
             auroc,
