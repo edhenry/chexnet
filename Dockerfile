@@ -12,9 +12,10 @@ RUN apt-get install python3-pip -y
 WORKDIR /opt/chexnet
 RUN python3.6 -m pip install -r requirements.txt
 RUN python3.6 -m pip install opencv-contrib-python
+RUN mkdir /var/log/tensorboard
 
 EXPOSE 3000/tcp
 EXPOSE 6006/tcp
 
-ENTRYPOINT [ "python3.6", "train.py" ]
-CMD ["tensorboard --log-dir=/var/log/tensorboard"]
+#ENTRYPOINT [ "python3.6", "train.py" ]
+CMD ["nohup python3.6 /opt/chexnet/train.py & \&& tensorboard --logdir /var/log/tensorboard"]
