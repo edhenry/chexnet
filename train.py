@@ -215,6 +215,16 @@ def main():
             shuffle=False,
         )
 
+        # tensor definitions for model export
+        serialized_tf_example = tf.placeholder(tf.string, name='tf_example')
+        feature_configs = {'x': tf.FixedLenFeature(shape=[], dtype=tf.float32)}
+        tf_example = tf.parse_example(serialized_tf_example, feature_configs)
+        tf_example['x'] = tf.reshape(tf_example['x'], (1, 224, 224, 3))
+        input_tensor = tf.identity(tf_example['x'], name='x')
+
+        tensor_info_input = tf.saved_model.utils.build_tensor_info(input_tensor)
+        #tensor_info_output = tf.saved_model.utils.build_tensor_info(model_train.output)
+
         # export model for serving
         export_base_path = output_directory
         export_path = os.path.join(
@@ -222,7 +232,15 @@ def main():
             tf.compat.as_bytes(model_version)
         )
         # signiture defn map
-        prediction_signature = tf.saved_model.signature_def_utils.predict_signature_def({"image": model_train.input}, {"prediction": model_train.output})
+        # prediction_signature = tf.saved_model.signature_def_utils.predict_signature_def({"image": input_tensor}, {"prediction": model.output})
+
+        prediction_signature = (
+            tf.saved_model.signature_def_utils.build_signature_def(
+                inputs={'images': tensor_info_input},
+                outputs={'prediction': model.output},
+                method_name=tf.saved_model.signature_constants.PREDICT_METHOD_NAME
+            )
+        )
 
         print(f" <<< Exporting Trained Model to {export_path} >>> ")
         builder = tf.saved_model.builder.SavedModelBuilder(export_path)

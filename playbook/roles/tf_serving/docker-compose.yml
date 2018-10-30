@@ -6,10 +6,11 @@ services:
     image: tensorflow/serving
     ports:
       - "8500"
+      - "8501"
     networks: 
       - kafka_data-stack-net
     volumes:
-      - /home/ed/Documents/code/chexnet/experiments/DenseNet121/2/:/models/DenseNet121
+      - /home/ed/Documents/code/chexnet/experiments/DenseNet121/:/models/DenseNet121
     environment:
       MODEL_NAME: "DenseNet121"
 
