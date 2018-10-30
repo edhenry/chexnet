@@ -32,12 +32,12 @@ Ansible is an automation framework that can be used to define and provision soft
 
 There will be another README at the root of the playbooks directory that outlines what each play accomplishes should anyone want to modify or extend the framework.
 
-### [Docker]
+### [Docker](https://www.docker.com/why-docker)
 
 Docker is an open source container platform that is great for dependency management, especially in projects with a diverse set of tools and libraries required for production. Docker is leveraged heavily in this example
 environment for dependency management and shipping models to `production`.
 
-### [Docker Compose]
+### [Docker Compose](https://docs.docker.com/compose/overview/)
 
 Docker compose is used to define each of the respective environments for all of the supporting services surrounding the entire `pipeline`. A `docker-compose.yml` can be found under each of the `roles` within the `playbook` directory of this repository.
 
@@ -49,8 +49,10 @@ This is the popular machine learning library released by Google. This is the lib
 
 This tool is used for tracking the training of the machine learning model.
 
-### [Kafka]
+### [Kafka](https://www.confluent.io/what-is-apache-kafka/)
 
 Kafka is used as a message bus between the various services that would like to consume the images as they're feed into the system from the UI.
 
-### [TensorFlow Serving]
+### [TensorFlow Serving](https://www.tensorflow.org/serving/)
+
+TensorFlow Serving is a model server that will be used to serve trained models. API calls will be made against the TensorFlow Server for performing inference over a trained model.
