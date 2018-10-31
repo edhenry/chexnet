@@ -192,8 +192,6 @@ def main():
             workers=generator_workers,
         )
 
-        print(model.input)
-
         # serving_checkpoint = ServingCheckpoint(
         #     output_directory=output_directory,
         #     model=model,
@@ -237,7 +235,7 @@ def main():
             tf.compat.as_bytes(export_base_path),
             tf.compat.as_bytes(model_version)
         )
-        
+
         prediction_signature = (
             tf.saved_model.signature_def_utils.build_signature_def(
                 inputs={'images': tensor_info_input},
