@@ -13,6 +13,10 @@ from models import modelwrap
 import tensorflow as tf
 import utility
 
+# hackery 
+# this is typically handled using environment variables on host
+# configuration; not by scripts
+os.environ["CUDA_VISIBLE_DEVICES"]="1"
 
 def main():
 
@@ -188,6 +192,8 @@ def main():
             workers=generator_workers,
         )
 
+        print(model.input)
+
         # serving_checkpoint = ServingCheckpoint(
         #     output_directory=output_directory,
         #     model=model,
@@ -216,14 +222,14 @@ def main():
         )
 
         # tensor definitions for model export
-        serialized_tf_example = tf.placeholder(tf.string, name='tf_example')
-        feature_configs = {'x': tf.FixedLenFeature(shape=[], dtype=tf.float32)}
-        tf_example = tf.parse_example(serialized_tf_example, feature_configs)
-        tf_example['x'] = tf.reshape(tf_example['x'], (1, 224, 224, 3))
-        input_tensor = tf.identity(tf_example['x'], name='x')
+        # serialized_tf_example = tf.placeholder(tf.string, name='tf_example')
+        # feature_configs = {'input_1': tf.FixedLenFeature(shape=[], dtype=tf.float32)}
+        # tf_example = tf.parse_example(serialized_tf_example, feature_configs)
+        # tf_example['input_1'] = tf.reshape(tf_example['x'], (1, 224, 224, 3))
+        # input_tensor = tf.identity(tf_example['input_1'], name='input_1')
 
-        tensor_info_input = tf.saved_model.utils.build_tensor_info(input_tensor)
-        #tensor_info_output = tf.saved_model.utils.build_tensor_info(model_train.output)
+        tensor_info_input = tf.saved_model.utils.build_tensor_info(model_train.input)
+        tensor_info_output = tf.saved_model.utils.build_tensor_info(model_train.output)
 
         # export model for serving
         export_base_path = output_directory
@@ -231,13 +237,11 @@ def main():
             tf.compat.as_bytes(export_base_path),
             tf.compat.as_bytes(model_version)
         )
-        # signiture defn map
-        # prediction_signature = tf.saved_model.signature_def_utils.predict_signature_def({"image": input_tensor}, {"prediction": model.output})
-
+        
         prediction_signature = (
             tf.saved_model.signature_def_utils.build_signature_def(
                 inputs={'images': tensor_info_input},
-                outputs={'prediction': model.output},
+                outputs={'prediction': tensor_info_output},
                 method_name=tf.saved_model.signature_constants.PREDICT_METHOD_NAME
             )
         )

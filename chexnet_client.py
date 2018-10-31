@@ -9,6 +9,7 @@ from PIL import Image
 import sys
 import tensorflow as tf
 from tensorflow.core.framework import types_pb2
+from tensorflow.python.framework import tensor_util
 from tensorflow_serving.apis import predict_pb2
 from tensorflow_serving.apis import prediction_service_pb2_grpc
 import threading
@@ -75,14 +76,13 @@ def do_inference(ts_server: str, ts_port: int, model_input):
     request = predict_pb2.PredictRequest()
     request.model_spec.name = 'DenseNet121'
     request.model_spec.signature_name = 'predict'
-    image = model_input
-    request.inputs['image'].CopyFrom(
-        tf.contrib.util.make_tensor_proto(image.astype(dtype=np.float32), shape=[1, 224, 224, 3])
+    request.inputs['images'].CopyFrom(
+        tf.contrib.util.make_tensor_proto(model_input, dtype=types_pb2.DT_FLOAT, shape=[1, 224, 224, 3])
     )
-    result_future = stub.Predict.future(request, 5.0)
 
-    output = np.array(result_future.outputs['predict'].int64_val)
-    print(output)
+    result_future = stub.Predict(request, 5.0)
+
+    print(result_future.outputs['prediction'])
 
 
 def collect_image(topic: str, kafka_session: Consumer):
@@ -121,7 +121,7 @@ def collect_image(topic: str, kafka_session: Consumer):
             # convert image to array
             image_array = np.asarray(image.convert("RGB"))
             image_array = image_array / 255.
-            image_array = np.resize(image_array, (224, 224, 3))
+            image_array = np.resize(image_array, (1, 224, 224, 3))
 
             do_inference(ts_server="172.23.0.9", ts_port=8500, model_input=image_array)
 

@@ -95,7 +95,7 @@ class AugmentedImageSequence(Sequence):
     
     def prepare_dataset(self):
         df = self.dataset_dataframe.sample(frac=1., random_state=self.random_state)
-        self.x_path, self.y = df["Image Index"].as_matrix(), df[self.class_names].as_matrix()
+        self.x_path, self.y = df["Image Index"].values, df[self.class_names].values
 
     def on_epoch_end(self):
         if self.shuffle:
