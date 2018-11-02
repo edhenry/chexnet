@@ -16,7 +16,7 @@ import utility
 # hackery 
 # this is typically handled using environment variables on host
 # configuration; not by scripts
-os.environ["CUDA_VISIBLE_DEVICES"]="1"
+# os.environ["CUDA_VISIBLE_DEVICES"]="1"
 
 def main():
 
@@ -226,8 +226,15 @@ def main():
         # tf_example['input_1'] = tf.reshape(tf_example['x'], (1, 224, 224, 3))
         # input_tensor = tf.identity(tf_example['input_1'], name='input_1')
 
+        model_class_weights = tf.convert_to_tensor(model.layers[-1].get_weights()[0], tf.float32)
+        model_final_conv_layer = utility.get_output_layer(model, "bn")
+
+        print(model_final_conv_layer.output)
+
         tensor_info_input = tf.saved_model.utils.build_tensor_info(model_train.input)
         tensor_info_output = tf.saved_model.utils.build_tensor_info(model_train.output)
+        tensor_info_class_weights = tf.saved_model.utils.build_tensor_info(model_class_weights)
+        tensor_info_final_conv_layer = tf.saved_model.utils.build_tensor_info(model_final_conv_layer.output)
 
         # export model for serving
         export_base_path = output_directory
@@ -239,7 +246,7 @@ def main():
         prediction_signature = (
             tf.saved_model.signature_def_utils.build_signature_def(
                 inputs={'images': tensor_info_input},
-                outputs={'prediction': tensor_info_output},
+                outputs={'prediction': tensor_info_output, 'class_weights': tensor_info_class_weights, 'final_conv_layer': tensor_info_final_conv_layer},
                 method_name=tf.saved_model.signature_constants.PREDICT_METHOD_NAME
             )
         )

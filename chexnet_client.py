@@ -82,8 +82,9 @@ def do_inference(ts_server: str, ts_port: int, model_input):
 
     result_future = stub.Predict(request, 5.0)
 
-    print(result_future.outputs['prediction'])
-
+    prediction = tensor_util.MakeNdarray(result_future.outputs['prediction'])
+    class_weights = tensor_util.MakeNdarray(result_future.outputs['class_weights'])
+    final_conv_layer = tensor_util.MakeNdarray(result_future.outputs['final_conv_layer'])
 
 def collect_image(topic: str, kafka_session: Consumer):
     """Collect an image from the respective image topic
