@@ -6,8 +6,10 @@ from flask_wtf.file import FileField, FileRequired, FileAllowed
 from wtforms import SubmitField
 
 from kafka import KafkaProducer, KafkaClient
+from confluent_kafka import Producer, Consumer, KafkaError, KafkaException
 import configparser
 import cv2
+import logging
 import time
 from PIL import Image
 import io
@@ -66,6 +68,38 @@ def publish_to_kafka(image, producer, topic: str):
     img_bytes = img_bytes.getvalue()
 
     producer.send(topic, img_bytes)
+
+def logger():
+    """Logger instance
+
+        Logs will be emitted when poll() is called when used with a Consumer
+    
+    Returns:
+        logging.Logger -- Logger object
+    """
+
+    logger = logging.getLogger('model_result_consumer')
+    logger.setLevel(logging.DEBUG)
+    handler.setFormatter(logging.Formatter('%(asctime)-15s %(levelname)-8s %(message)s'))
+    logger.addHandler(handler)
+
+    return logger
+
+
+def collect_from_kafka(consumer: KafkaClient, topic: str):
+    """Collect response from Kafka
+    
+    Arguments:
+        consumer {KafkaClient} -- [description]
+        topic {str} -- [description]
+    """
+    logs = logger()
+
+    c = Consumer({
+        'bootstrap.servers': bootstrap_server,
+        'group.id': group_id,
+        'auto.offset.reset': offset
+    }, logger=logs)
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0',port=9220)

@@ -2,10 +2,14 @@ import cv2
 import grpc
 from configparser import ConfigParser
 from confluent_kafka import Producer, Consumer, KafkaError, KafkaException
+import generator
 import io
+import keras.backend as K
 import logging
 import numpy as np
 from PIL import Image
+import scipy.misc
+from skimage.transform import resize
 import sys
 import tensorflow as tf
 from tensorflow.core.framework import types_pb2
@@ -26,6 +30,8 @@ bootstrap_server = cp["KAFKA"].get("bootstrap_server")
 group_id = cp["KAFKA"].get("group_id")
 topic = cp["KAFKA"].get("kafka_topic").split(',')
 offset = cp["KAFKA"].get("offset_reset")
+class_names = cp["DEFAULT"].get("class_names").split(",")
+
 
 def logger():
     """Logger instance
@@ -61,6 +67,15 @@ def connect_to_kafka() -> Consumer:
 
     return c
 
+def publish_to_kafka(topic: str, kafka_session: Producer):
+    """Method to publish messages to Kafka
+    
+    Arguments:
+        topic {str} -- [description]
+        kafka_session {Producer} -- [description]
+    """
+
+
 def do_inference(ts_server: str, ts_port: int, model_input):
     """
     API call to perform inference over a given input
@@ -78,7 +93,7 @@ def do_inference(ts_server: str, ts_port: int, model_input):
     request.model_spec.signature_name = 'predict'
     request.inputs['images'].CopyFrom(
         tf.contrib.util.make_tensor_proto(model_input, dtype=types_pb2.DT_FLOAT, shape=[1, 224, 224, 3])
-    )
+    )        
 
     result_future = stub.Predict(request, 5.0)
 
@@ -86,6 +101,8 @@ def do_inference(ts_server: str, ts_port: int, model_input):
     class_weights = tensor_util.MakeNdarray(result_future.outputs['class_weights'])
     final_conv_layer = tensor_util.MakeNdarray(result_future.outputs['final_conv_layer'])
 
+    return prediction, class_weights, final_conv_layer
+    
 def collect_image(topic: str, kafka_session: Consumer):
     """Collect an image from the respective image topic
     
@@ -119,12 +136,34 @@ def collect_image(topic: str, kafka_session: Consumer):
             image_bytes = bytearray(msg.value())
             image = Image.open(io.BytesIO(image_bytes))
 
-            # convert image to array
-            image_array = np.asarray(image.convert("RGB"))
-            image_array = image_array / 255.
-            image_array = np.resize(image_array, (1, 224, 224, 3))
+            # # convert image to array
+            orig_image_array = np.asarray(image.convert("RGB"))
+            image_array = orig_image_array / 255.
+            image_array = resize(image_array, (1, 224, 224, 3))
 
-            do_inference(ts_server="172.23.0.9", ts_port=8500, model_input=image_array)
+            prediction, class_weights, final_conv_layer = do_inference(ts_server="172.23.0.9", ts_port=8500, model_input=image_array)
+
+            # create CAM
+            get_output = K.function([tf.convert_to_tensor(image_array)], [tf.convert_to_tensor(final_conv_layer), tf.convert_to_tensor(prediction)])
+            [conv_outputs, predictions] = get_output([image_array[0]])
+
+            conv_outputs = conv_outputs[0, :, :, :]
+
+            cam = np.zeros(dtype=np.float32, shape=(conv_outputs.shape[:2]))
+            for i, w in enumerate(class_weights[:,1]):
+                # print("I: ", i, "\n")
+                # print("conv_outputs.shape : ", conv_outputs[:, :, i].shape, "\n")
+                cam += w * conv_outputs[:, :, i]
+                # print("CAM : ", cam, "\n")
+            cam /= np.max(cam)
+            cam = cv2.resize(cam, orig_image_array.shape[:2])
+            heatmap = cv2.applyColorMap(np.uint8(255 * cam), cv2.COLORMAP_JET)
+            heatmap[np.where(cam < 0.2)] = 0
+            img = heatmap * 0.5 + orig_image_array
+
+            #scipy.misc.imsave("test_heatmap.png", img[0])
+            cv2.imwrite('test_heatmap.png', img)
+
 
 def main():
     logger()

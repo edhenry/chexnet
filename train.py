@@ -52,7 +52,6 @@ def main():
     image_dimension = cp["TRAIN"].getint("image_dimension")
     train_steps = cp["TRAIN"].get("train_steps")
     patience_reduce_lr = cp["TRAIN"].getint("patience_reduce_lr")
-    print(f"{patience_reduce_lr}", type(patience_reduce_lr))
     min_learning_rate = cp["TRAIN"].getfloat("min_learning_rate")
     validation_steps = cp["TRAIN"].get("validation_steps")
     positive_weights_multiply = cp["TRAIN"].getfloat("positive_weights_multiply")
@@ -228,8 +227,7 @@ def main():
 
         model_class_weights = tf.convert_to_tensor(model.layers[-1].get_weights()[0], tf.float32)
         model_final_conv_layer = utility.get_output_layer(model, "bn")
-
-        print(model_final_conv_layer.output)
+        
 
         tensor_info_input = tf.saved_model.utils.build_tensor_info(model_train.input)
         tensor_info_output = tf.saved_model.utils.build_tensor_info(model_train.output)
