@@ -1,13 +1,16 @@
 import os
-from flask import Flask, render_template
+from flask import Flask, render_template, request, Response
 from flask_uploads import UploadSet, configure_uploads, IMAGES, patch_request_class
 from flask_wtf import FlaskForm
 from flask_wtf.file import FileField, FileRequired, FileAllowed
 from wtforms import SubmitField
 
 from kafka import KafkaProducer, KafkaClient
+from confluent_kafka import Producer, Consumer, KafkaError, KafkaException
 import configparser
 import cv2
+import logging
+import sys
 import time
 from PIL import Image
 import io
@@ -23,12 +26,25 @@ cp.read(config_file)
 broker = cp.get("KAFKA", "broker")
 broker_port = cp.get("KAFKA", "kafka_port")
 producer = KafkaProducer(bootstrap_servers=(broker.strip('"') + ":" + broker_port))
-topic = str(cp["KAFKA"].get("kafka_topic"))
-print(topic)
+inference_kafka_topic = str(cp["KAFKA"].get("inference_kafka_topic"))
+results_kafka_topic = cp["KAFKA"].get("results_kafka_topic").split(",")
+results_consumer_group_id = cp["KAFKA"].get("results_consumer_group_id")
+offset_reset = cp["KAFKA"].get("offset_reset")
 
 photos = UploadSet('photos', IMAGES)
 configure_uploads(app, photos)
 patch_request_class(app)
+
+def print_assignment(consumer, partitions):
+        print('Assignment:', partitions)
+
+c = Consumer({
+    'bootstrap.servers': broker,
+    'group.id': results_consumer_group_id,
+    'auto.offset.reset': offset_reset
+})
+
+c.subscribe(results_kafka_topic, on_assign=print_assignment)
 
 class UploadForm(FlaskForm):
     photo = FileField(validators=[FileAllowed(photos, u'Please upload images only!'), FileRequired(u'File was empty!')])
@@ -39,14 +55,34 @@ def upload_file():
     """
     Upload file to web server
     """
+    
     form = UploadForm()
     if form.validate_on_submit():
         filename = photos.save(form.photo.data)
         file_url = photos.url(filename)
-        publish_to_kafka(filename, producer, topic)
+        publish_to_kafka(filename, producer, inference_kafka_topic)
     else:
         file_url = None
     return render_template('/index.html', form=form, file_url=file_url)
+
+@app.route('/results', methods=['GET'])
+def get_results():
+    """
+    Get results from the model
+    """
+    collect_results()
+
+def collect_results():
+    
+    while True:
+        msg = c.poll(timeout=1.0)
+        print(msg.value())
+        img_bytes = bytearray(msg.value())
+        image = Image.open(io.BytesIO(img_bytes))
+        image.save("test_img.png")
+
+    
+
 
 def publish_to_kafka(image, producer, topic: str):
     """

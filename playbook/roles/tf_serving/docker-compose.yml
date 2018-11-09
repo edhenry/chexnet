@@ -3,7 +3,7 @@
 version: '2'
 services:
   tf_serving:
-    image: tensorflow/serving
+    image: tensorflow/serving:latest
     ports:
       - "8500"
       - "8501"
