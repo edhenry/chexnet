@@ -71,18 +71,32 @@ def get_results():
     Get results from the model
     """
     collect_results()
+    results = "test_img.png"
+    return render_template('/results.html', results_url=results, file_url=file_url)
 
 def collect_results():
     
     while True:
-        msg = c.poll(timeout=1.0)
-        print(msg.value())
-        img_bytes = bytearray(msg.value())
-        image = Image.open(io.BytesIO(img_bytes))
-        image.save("test_img.png")
-
-    
-
+        msg = c.poll(0)
+        if msg is None:
+            print("No new messages!")
+            return
+        if msg.error():
+            if msg.error().code() == KafkaError._PARTITION_EOF:
+                sys.stderr.write('%% %s [%d] reached end of offset %d\n' %
+                                 (msg.topic(), msg.partition(), msg.offset()))
+            else:
+                raise KafkaException(msg.error())
+        else:
+            # Well formed messaged
+            sys.stderr.write('%% %s [%d] at offset %d with key %s: \n' %
+                             (msg.topic(), msg.partition(), msg.offset(),
+                              str(msg.key())))
+            img_bytes = bytearray(msg.value())
+            image = Image.open(io.BytesIO(img_bytes))
+            image.save("static/test_img.png")
+            return
+    return 
 
 def publish_to_kafka(image, producer, topic: str):
     """
