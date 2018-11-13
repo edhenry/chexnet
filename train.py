@@ -2,7 +2,7 @@ import json
 import shutil
 import os
 import pickle
-from callback import MultiClassAUROC, MultiGPUModelCheckpoint, ServingCheckpoint
+from callback import MultiClassAUROC, MultiGPUModelCheckpoint
 from configparser import ConfigParser
 import generator
 import keras.backend as K
@@ -13,6 +13,10 @@ from models import modelwrap
 import tensorflow as tf
 import utility
 
+# hackery 
+# this is typically handled using environment variables on host
+# configuration; not by scripts
+# os.environ["CUDA_VISIBLE_DEVICES"]="1"
 
 def main():
 
@@ -28,10 +32,12 @@ def main():
     # set a bunch of default config
     output_directory = cp["DEFAULT"].get("output_directory")
     image_source_directory = cp["DEFAULT"].get("image_source_directory")
+    # TODO tie in base model name for model verioning for SavedModels
     base_model_name = cp["DEFAULT"].get("base_model_name")
     # Class names are passed in as array within the configuration script
     class_names = cp["DEFAULT"].get("class_names").split(",")
     model_version = cp["DEFAULT"].get("model_version")
+    tensorboard_log_dir = cp["DEFAULT"].get("tensorboard_log_dir")
 
     # training configuration
     # See sample_config.ini for explanation of all of the parameters
@@ -45,7 +51,7 @@ def main():
     generator_workers = cp["TRAIN"].getint("generator_workers")
     image_dimension = cp["TRAIN"].getint("image_dimension")
     train_steps = cp["TRAIN"].get("train_steps")
-    patience_reduce_lr = cp["TRAIN"].getint("reduce_learning_rate")
+    patience_reduce_lr = cp["TRAIN"].getint("patience_reduce_lr")
     min_learning_rate = cp["TRAIN"].getfloat("min_learning_rate")
     validation_steps = cp["TRAIN"].get("validation_steps")
     positive_weights_multiply = cp["TRAIN"].getfloat("positive_weights_multiply")
@@ -66,6 +72,7 @@ def main():
     # end configuration parser
 
     utility.check_create_output_dir(output_directory)
+    utility.create_tensorboard_log_dir(tensorboard_log_dir)
     
     try:
 
@@ -192,13 +199,12 @@ def main():
 
         callbacks =[
             checkpoint,
-            TensorBoard(log_dir=os.path.join(output_directory, "logs"), batch_size=batch_size),
-            ReduceLROnPlateau(monitor='validation_loss', factor=0.1, patience=patience_reduce_lr,
+            TensorBoard(log_dir=os.path.join(tensorboard_log_dir), batch_size=batch_size),
+            ReduceLROnPlateau(monitor='val_loss', factor=0.1, patience=patience_reduce_lr,
                             verbose=1, mode="min", min_lr=min_learning_rate),
-            auroc
+            auroc,
             ]
 
-        # TODO Implement training loop (l00ps br0ther)    
         print(" <<< Starting Model Training >>> ")
         history = model_train.fit_generator(
             generator=train_sequence,
@@ -212,14 +218,36 @@ def main():
             shuffle=False,
         )
 
+        # tensor definitions for model export
+        # serialized_tf_example = tf.placeholder(tf.string, name='tf_example')
+        # feature_configs = {'input_1': tf.FixedLenFeature(shape=[], dtype=tf.float32)}
+        # tf_example = tf.parse_example(serialized_tf_example, feature_configs)
+        # tf_example['input_1'] = tf.reshape(tf_example['x'], (1, 224, 224, 3))
+        # input_tensor = tf.identity(tf_example['input_1'], name='input_1')
+
+        model_class_weights = tf.convert_to_tensor(model.layers[-1].get_weights()[0], tf.float32)
+        model_final_conv_layer = utility.get_output_layer(model, "bn")
+        
+
+        tensor_info_input = tf.saved_model.utils.build_tensor_info(model_train.input)
+        tensor_info_output = tf.saved_model.utils.build_tensor_info(model_train.output)
+        tensor_info_class_weights = tf.saved_model.utils.build_tensor_info(model_class_weights)
+        tensor_info_final_conv_layer = tf.saved_model.utils.build_tensor_info(model_final_conv_layer.output)
+
         # export model for serving
         export_base_path = output_directory
         export_path = os.path.join(
             tf.compat.as_bytes(export_base_path),
             tf.compat.as_bytes(model_version)
         )
-        # signiture defn map
-        prediction_signature = tf.saved_model.signature_def_utils.predict_signature_def({"image": model_train.input}, {"prediction": model_train.output})
+
+        prediction_signature = (
+            tf.saved_model.signature_def_utils.build_signature_def(
+                inputs={'images': tensor_info_input},
+                outputs={'prediction': tensor_info_output, 'class_weights': tensor_info_class_weights, 'final_conv_layer': tensor_info_final_conv_layer},
+                method_name=tf.saved_model.signature_constants.PREDICT_METHOD_NAME
+            )
+        )
 
         print(f" <<< Exporting Trained Model to {export_path} >>> ")
         builder = tf.saved_model.builder.SavedModelBuilder(export_path)

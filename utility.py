@@ -1,3 +1,5 @@
+import keras.backend as K
+from generator import AugmentedImageSequence
 import numpy as np
 import os
 import pandas as pd
@@ -17,7 +19,7 @@ def get_sample_counts(output_directory: str, datasets: str, class_names: list):
 
     df = pd.read_csv(os.path.join(output_directory, f"{datasets}.csv"))
     total_count = df.shape[0]
-    labels = df[class_names].as_matrix()
+    labels = df[class_names].values
     positive_counts = np.sum(labels, axis=0)
     class_positive_counts = dict(zip(class_names, positive_counts))
     return total_count, class_positive_counts
@@ -137,3 +139,23 @@ def build_datasets(dataset_csv_dir: str, output_directory: str):
     
     return
 
+def create_tensorboard_log_dir(tensorboard_log_dir: str) -> bool:
+    """Create a directory in local /var/logs filesystem
+    """
+
+    if not os.path.isdir(tensorboard_log_dir):
+        os.makedirs(tensorboard_log_dir)
+        return True
+    return False
+
+def get_output_layer(model, layer_name):
+    """Get output layer of a particular model
+    
+    Arguments:
+        model {[type]} -- model object
+        layer_name {[type]} -- name of the output layer
+    """
+
+    layer_dict = dict([(layer.name, layer) for layer in model.layers])
+    layer = layer_dict[layer_name]
+    return layer

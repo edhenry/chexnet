@@ -3,7 +3,7 @@
 version: '2'
 services:
   xraywebapp:
-    image: xray-webapp
+    image: edhenry/xray-webapp
     ports:
       - "9220"
     networks:
