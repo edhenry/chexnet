@@ -225,8 +225,8 @@ def main():
         # tf_example['input_1'] = tf.reshape(tf_example['x'], (1, 224, 224, 3))
         # input_tensor = tf.identity(tf_example['input_1'], name='input_1')
 
-        model_class_weights = tf.convert_to_tensor(model.layers[-1].get_weights()[0], tf.float32)
-        model_final_conv_layer = utility.get_output_layer(model, "bn")
+        model_class_weights = tf.convert_to_tensor(model_train.layers[-1].get_weights()[0], tf.float32)
+        model_final_conv_layer = utility.get_output_layer(model_train, "bn")
         
 
         tensor_info_input = tf.saved_model.utils.build_tensor_info(model_train.input)

@@ -36,23 +36,24 @@ results_kafka_topic = cp["KAFKA"].get("results_kafka_topic")
 offset = cp["KAFKA"].get("offset_reset")
 class_names = cp["DEFAULT"].get("class_names").split(",")
 
-
 def logger():
     """Logger instance
 
-        Logs will be emitted when poll() is called when used with Consumer
+        Logs will be emitted when poll() is called when used with Consumer and/or Producer
     
     Returns:
         [logging.Logger] -- Logging object
     """
 
-    logger = logging.getLogger('consumer')
+    logger = logging.getLogger('chexnet_client')
     logger.setLevel(logging.DEBUG)
     handler = logging.StreamHandler()
-    handler.setFormatter(logging.Formatter('%(asctime)-15s %(levelname)-8s %(message)s'))
+    handler.setFormatter(logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s'))
     logger.addHandler(handler)
 
     return logger
+
+logs = logger()
 
 def kafka_consumer() -> Consumer:
     """Connect and consume data from Kafka Broker
@@ -60,8 +61,6 @@ def kafka_consumer() -> Consumer:
     Returns:
         Consumer -- return Consumer object
     """
-
-    logs = logger()
 
     c = Consumer({
         'bootstrap.servers': bootstrap_server,
@@ -77,11 +76,11 @@ def kafka_producer() -> Producer:
     Returns:
         Producer -- [description]
     """
-    logs = logger()
+
     p = Producer({
         'bootstrap.servers': bootstrap_server,
         'message.max.bytes': 10000000
-    })
+    }, logger=logs)
 
     return p
 
@@ -91,9 +90,9 @@ def kafka_delivery_report(err, msg):
     Triggered by poll() or flush()
     """
     if err is not None:
-        print('Message delivery failed! : {}'.format(err))
+        logs.info('Message delivery failed! : {}'.format(err))
     else:
-        print('Message delivered to {} [{}]'.format(msg.topic(), msg.partition()))
+        logs.info('Message delivered to {} [{}] at offset [{}]'.format(msg.topic(), msg.partition(), msg.offset()))
 
 def do_inference(ts_server: str, ts_port: int, model_input):
     """
@@ -103,7 +102,8 @@ def do_inference(ts_server: str, ts_port: int, model_input):
         ts_sever {str} -- TensorFlow Serving IP
         ts_port {int} -- TensorFlow Serving Port 
         model_input {[type]} -- Input tensor 
-    """    
+    """
+
     channel = grpc.insecure_channel(ts_server + ":" + str(ts_port))
     stub = prediction_service_pb2_grpc.PredictionServiceStub(channel)
 
@@ -120,8 +120,30 @@ def do_inference(ts_server: str, ts_port: int, model_input):
     class_weights = tensor_util.MakeNdarray(result_future.outputs['class_weights'])
     final_conv_layer = tensor_util.MakeNdarray(result_future.outputs['final_conv_layer'])
 
+    logs.info("Successfully received response from TensorFlow Server!")
+
     return prediction, class_weights, final_conv_layer
+
+def image_transform(msg_payload) -> Image:
+    """Transform message from Kafka message payload
     
+    Arguments:
+        msg_payload {Consumer.poll} -- message payload
+
+    Returns:
+        PIL.Image -- Image object
+    """
+
+    image_bytes = bytearray(msg_payload.value())
+    image = Image.open(io.BytesIO(image_bytes))
+
+    orig_image_array = np.asarray(image.convert("RGB"))
+    image_array = orig_image_array / 255.
+    image_array = resize(image_array, (1, 224, 224, 3))
+    logs.info("topic : [%s] - offset : [%s] - image successfully transformed!", msg_payload.topic(), msg_payload.offset())
+
+    return image_array, orig_image_array
+
 def collect_image(topic: str, kafka_session: Consumer):
     """Collect an image from the respective image topic
     
@@ -129,7 +151,7 @@ def collect_image(topic: str, kafka_session: Consumer):
         broker {str} -- Kafka client
         topic {str} -- topic (ex. images)
     """
-    
+
     def print_assignment(consumer, partitions):
         print('Assignment:', partitions)
 
@@ -139,29 +161,25 @@ def collect_image(topic: str, kafka_session: Consumer):
         msg = kafka_session.poll(timeout=1.0)
         if msg is None:
             continue
+            logs.info("No messages available within topic : %s", topic)
         if msg.error():
             if msg.error().code() == KafkaError._PARTITION_EOF:
-                sys.stderr.write('%% %s [%d] reached end of offset %d\n' %
+                logs.info('%% %s [%d] reached end of offset %d' %
                                  (msg.topic(), msg.partition(), msg.offset()))
             else:
+                logs.debug("Kafka Exception : %s", msg.error())
                 raise KafkaException(msg.error())
         else:
             # Well formed messaged
-            sys.stderr.write('%% %s [%d] at offset %d with key %s: \n' %
+            logs.info('%% %s [%d] at offset %d with key %s: ' %
                              (msg.topic(), msg.partition(), msg.offset(),
                               str(msg.key())))
             
             # image transform
-            image_bytes = bytearray(msg.value())
-            image = Image.open(io.BytesIO(image_bytes))
-
-            # # convert image to array
-            orig_image_array = np.asarray(image.convert("RGB"))
-            image_array = orig_image_array / 255.
-            image_array = resize(image_array, (1, 224, 224, 3))
+            image_array, orig_image_array = image_transform(msg)
 
             prediction, class_weights, final_conv_layer = do_inference(ts_server="172.23.0.9", ts_port=8500, model_input=image_array)
-            np.set_printoptions(threshold=np.nan)
+
             # create CAM
             get_output = K.function([tf.convert_to_tensor(image_array)], [tf.convert_to_tensor(final_conv_layer), tf.convert_to_tensor(prediction)])
             [conv_outputs, predictions] = get_output([image_array[0]])
@@ -179,6 +197,8 @@ def collect_image(topic: str, kafka_session: Consumer):
             heatmap[np.where(cam < 0.2)] = 0
             img = heatmap * 0.5 + orig_image_array
 
+            logs.info("Class Activation Map (CAM) Created!")
+
             # this is complete fucking hackery and will need to be replaced
             # I don't know why a numpy array (see `img` array above) would be 25MB when all constituent
             # arrays are ~ 7MB total. Let alone when saving an image to disk
@@ -191,18 +211,16 @@ def collect_image(topic: str, kafka_session: Consumer):
             img_bytes = img_bytes.getvalue()
             os.remove("inflight_img.png")
 
-            from sys import getsizeof
-            print(getsizeof(img_bytes))
-
             p = kafka_producer()
+            p.poll(0)
             p.produce(results_kafka_topic, value=img_bytes, callback=kafka_delivery_report)
-            
-            
+            p.flush()
+                        
 def main():
     # TODO: Restructure execution logic and break apart more
     # complex functions such as collect_image(), etc.
     # KISS and DRY should be applied...
-    logger()
+
     kafka = kafka_consumer()
     collect_image(inference_kafka_topic, kafka)
 

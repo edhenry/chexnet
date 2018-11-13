@@ -72,7 +72,7 @@ def get_results():
     """
     collect_results()
     results = "test_img.png"
-    return render_template('/results.html', results_url=results, file_url=file_url)
+    return render_template('/results.html', results_url=results)
 
 def collect_results():
     

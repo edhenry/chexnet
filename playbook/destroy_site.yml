@@ -5,6 +5,7 @@
   connection: local
   gather_facts: no
   tasks: 
+    - include: roles/chexnet_app/tasks/destroy.yml
     - include: roles/nifi/tasks/destroy.yml
     - include: roles/airflow/tasks/destroy.yml
     - include: roles/webapp/tasks/destroy.yml

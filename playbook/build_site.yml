@@ -10,6 +10,7 @@
     - include: roles/airflow/tasks/build.yml
     - include: roles/webapp/tasks/build.yml
     - include: roles/tf_serving/tasks/build.yml
+    - include: roles/chexnet_app/tasks/build.yml
 
   vars:
     kafka_file_template: Kafka_File_Pipe.xml
