@@ -202,7 +202,7 @@ def main():
             TensorBoard(log_dir=os.path.join(tensorboard_log_dir), batch_size=batch_size),
             ReduceLROnPlateau(monitor='val_loss', factor=0.1, patience=patience_reduce_lr,
                             verbose=1, mode="min", min_lr=min_learning_rate),
-            auroc,
+            auroc
             ]
 
         print(" <<< Starting Model Training >>> ")
@@ -217,13 +217,6 @@ def main():
             workers=generator_workers,
             shuffle=False,
         )
-
-        # tensor definitions for model export
-        # serialized_tf_example = tf.placeholder(tf.string, name='tf_example')
-        # feature_configs = {'input_1': tf.FixedLenFeature(shape=[], dtype=tf.float32)}
-        # tf_example = tf.parse_example(serialized_tf_example, feature_configs)
-        # tf_example['input_1'] = tf.reshape(tf_example['x'], (1, 224, 224, 3))
-        # input_tensor = tf.identity(tf_example['input_1'], name='input_1')
 
         model_class_weights = tf.convert_to_tensor(model_train.layers[-1].get_weights()[0], tf.float32)
         model_final_conv_layer = utility.get_output_layer(model_train, "bn")

@@ -4,8 +4,10 @@ from configparser import ConfigParser
 from confluent_kafka import Producer, Consumer, KafkaError, KafkaException
 import generator
 import io
+import json
 import keras.backend as K
 import logging
+import matplotlib.pyplot as plt
 import numpy as np
 import os
 from PIL import Image
@@ -144,6 +146,43 @@ def image_transform(msg_payload) -> Image:
 
     return image_array, orig_image_array
 
+def marshall_message(img_bytes, aurocs) -> dict:
+    """Marshall message to send over message bus
+
+       In the future I would rather use something like Protobufs / Avro instead of 
+       raw JSON
+    
+    Arguments:
+        img_bytes {bytearray} -- byte array to convert to string for transmission
+        aurocs {numpy array} -- numpy array of prediction results
+    
+    Returns:
+        dict -- [description]
+    """
+
+    ser_message = {}
+
+    img_bytes = img_bytes.decode('latin-1')
+
+    ser_message['image'] = img_bytes
+    ser_message['aurocs'] = aurocs
+
+    return json.dumps(ser_message)
+
+def create_barchart(prediction_array):
+    """Create a barchart for predictions
+    
+    Arguments:
+        prediction_array {numpy array} -- Array of predictions returned from CheXNet Model
+    """
+    y_pos = class_names
+
+    plt.barh(y_pos, prediction_array, align='center', alpha=0.5)
+    plt.yticks(y_pos, class_names)
+    plt.xlabel('Probability')
+    plt.title("Probability of given pathology")
+    plt.savefig("barchart.png")
+
 def collect_image(topic: str, kafka_session: Consumer):
     """Collect an image from the respective image topic
     
@@ -209,11 +248,14 @@ def collect_image(topic: str, kafka_session: Consumer):
             img_bytes = io.BytesIO()
             new_img.save(img_bytes, format='PNG')
             img_bytes = img_bytes.getvalue()
+            message = marshall_message(img_bytes, prediction.tolist())
             os.remove("inflight_img.png")
+
+            create_barchart((prediction[0] * 100))
 
             p = kafka_producer()
             p.poll(0)
-            p.produce(results_kafka_topic, value=img_bytes, callback=kafka_delivery_report)
+            p.produce(results_kafka_topic, value=message, callback=kafka_delivery_report)
             p.flush()
                         
 def main():
