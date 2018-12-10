@@ -1,0 +1,18 @@
+---
+
+version: '2'
+services:
+  ui:
+    image: tensorflow/tensorflow:1.12.0-py3
+    networks: 
+      kafka_data-stack-net:
+        ipv4_address: 172.23.0.20
+    entrypoint: [jupyter, notebook, --allow-root]
+    volumes:
+      - /home/ed/Documents/code/chexnet:/notebooks/jupyter_env
+
+# TODO : custom linkage between docker-compose files for NiFi and Kafka
+# Need to break this out into separate logic at some point or another
+networks: 
+    kafka_data-stack-net:
+        external: true

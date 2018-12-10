@@ -228,20 +228,24 @@ def collect_image(topic: str, kafka_session: Consumer):
             # method. Needs further investigation and comparison to original
             # CAM paper found here : http://cnnlocalization.csail.mit.edu/
             cam = np.zeros(dtype=np.float32, shape=(conv_outputs.shape[:2]))
+            print(class_weights[0])
             for i, w in enumerate(class_weights[0]):
                 cam += w * conv_outputs[:, :, i]
             cam /= np.max(cam)
-            cam = cv2.resize(cam, orig_image_array.shape[:2])
+            
+            # TODO : Investigate why the cv2.resize() function transposes
+            # the height and width of the orig_image_array
+            cam = cv2.resize(cam, (orig_image_array.shape[:2][1], orig_image_array.shape[:2][0]), interpolation=cv2.INTER_CUBIC)
             heatmap = cv2.applyColorMap(np.uint8(255 * cam), cv2.COLORMAP_JET)
             heatmap[np.where(cam < 0.2)] = 0
             img = heatmap * 0.5 + orig_image_array
 
             logs.info("Class Activation Map (CAM) Created!")
 
-            # this is complete fucking hackery and will need to be replaced
-            # I don't know why a numpy array (see `img` array above) would be 25MB when all constituent
-            # arrays are ~ 7MB total. Let alone when saving an image to disk
-            # the image is only 1MB total. What the actual fuck.
+            # This is complete hackery and will need to be replaced
+            # I don't know why a numpy array (see `img` array above) 
+            # would be 25MB when all constituent arrays are ~ 7MB total. 
+            # Let alone when saving an image to disk the image is only 1MB total.
             cv2.imwrite("inflight_img.png", img)
 
             new_img = Image.open("inflight_img.png", mode='r')
@@ -251,7 +255,7 @@ def collect_image(topic: str, kafka_session: Consumer):
             message = marshall_message(img_bytes, prediction.tolist())
             os.remove("inflight_img.png")
 
-            create_barchart((prediction[0] * 100))
+            #create_barchart((prediction[0] * 100))
 
             p = kafka_producer()
             p.poll(0)

@@ -2,12 +2,13 @@
 
 version: '2'
 services:
-  xraywebapp:
-    image: edhenry/xray-webapp
+  ui:
+    image: edhenry/xray-webapp:0.1
     ports:
       - "9220"
     networks:
-      - kafka_data-stack-net
+      kafka_data-stack-net:
+        ipv4_address: 172.23.0.8
     
 networks: 
     kafka_data-stack-net:
