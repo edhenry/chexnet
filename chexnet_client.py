@@ -183,6 +183,31 @@ def create_barchart(prediction_array):
     plt.title("Probability of given pathology")
     plt.savefig("barchart.png")
 
+def create_cams(feature_conv, weight_softmax, class_idx, orig_image_size):
+    """
+    Create class activation maps and upsample to original image size
+    
+    Arguments:
+        feature_conv {[type]} -- [description]
+        weight_softmax {[type]} -- [description]
+        class_idx {[type]} -- [description]
+        orig_image_size {[type]} -- [description]
+    """
+    
+    orig_size = orig_image_size
+    bz, nc, h, w = feature_conv.shape
+    output_cam = []
+    for idx in class_idx:
+        cam = weight_softmax[idx].dot(feature_conv.reshape((nc, h*w)))
+        cam = cam.reshape(h, w)
+        cam = cam - np.min(cam)
+        cam_img = cam / np.max(cam)
+        cam_img = np.uint8(255 * cam_img)
+        output_cam.append(cv2.resize(cam_img, orig_size))
+    return output_cam
+    
+
+
 def collect_image(topic: str, kafka_session: Consumer):
     """Collect an image from the respective image topic
     
@@ -228,17 +253,21 @@ def collect_image(topic: str, kafka_session: Consumer):
             # method. Needs further investigation and comparison to original
             # CAM paper found here : http://cnnlocalization.csail.mit.edu/
             cam = np.zeros(dtype=np.float32, shape=(conv_outputs.shape[:2]))
-            print(class_weights[0])
             for i, w in enumerate(class_weights[0]):
                 cam += w * conv_outputs[:, :, i]
+            cam = cam - np.min(cam)
             cam /= np.max(cam)
+            #h,w = orig_image_array.shape[:2]
+            cam = cv2.resize(cam, orig_image_array.shape[:2])
+
             
             # TODO : Investigate why the cv2.resize() function transposes
             # the height and width of the orig_image_array
-            cam = cv2.resize(cam, (orig_image_array.shape[:2][1], orig_image_array.shape[:2][0]), interpolation=cv2.INTER_CUBIC)
-            heatmap = cv2.applyColorMap(np.uint8(255 * cam), cv2.COLORMAP_JET)
-            heatmap[np.where(cam < 0.2)] = 0
-            img = heatmap * 0.5 + orig_image_array
+            #cam = cv2.resize(cam, (orig_image_array.shape[:2][1], orig_image_array.shape[:2][0]), interpolation=cv2.INTER_CUBIC)
+            cam = np.uint8(255 * cam)
+            heatmap = cv2.applyColorMap(cam, cv2.COLORMAP_JET)
+            #heatmap[np.where(cam < 0.2)] = 0
+            img = heatmap * 0.3 + orig_image_array
 
             logs.info("Class Activation Map (CAM) Created!")
 
@@ -254,8 +283,6 @@ def collect_image(topic: str, kafka_session: Consumer):
             img_bytes = img_bytes.getvalue()
             message = marshall_message(img_bytes, prediction.tolist())
             os.remove("inflight_img.png")
-
-            #create_barchart((prediction[0] * 100))
 
             p = kafka_producer()
             p.poll(0)

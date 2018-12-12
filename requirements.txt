@@ -1,5 +1,5 @@
 absl-py==0.4.1
-airflow==1.8.0
+#airflow==1.8.0
 astor==0.7.1
 astroid==2.0.4
 backcall==0.1.0
