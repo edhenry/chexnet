@@ -43,12 +43,12 @@ class MultiClassAUROC(Callback):
         else:
             self.stats = {"best_mean_auroc": 0}
         
-        # area under receiver operator characteristic
+        # area under receiver operator characteristic log
         self.aurocs = {}
         for c in self.class_names:
             self.aurocs[c] = []
                 
-    def on_end_epoch(self, epoch: int, logs={}):
+    def on_epoch_end(self, epoch: int, logs={}):
         """
         Calculate the mean AUROC and save the best parameters accordingly
         
@@ -67,35 +67,35 @@ class MultiClassAUROC(Callback):
         for i in range(len(self.class_names)):
             try:
                 score = roc_auc_score(y[:, i], y_hat[:, i])
-            except:
+            except ValueError:
                 score = 0
-                current_auroc.append(score)
-                print(f"{i + 1}. {self.class_names[i]}: {score}")
-            print("***********************************")
+            self.aurocs[self.class_names[i]].append(score)
+            current_auroc.append(score)
+            print(f"{i + 1}. {self.class_names[i]}: {score}")
+        print("***********************************")
 
-            mean_auroc = np.mean(current_auroc)
-            print(f"Mean AUROC : {mean_auroc}")
-            if mean_auroc > self.stats["best_mean_auroc"]:
-                print(f"Mean AUROC Increased! Updating best AUROC from {self.stats['best_mean_auroc']} to {mean_auroc}")
+        mean_auroc = np.mean(current_auroc)
+        print(f"Mean AUROC : {mean_auroc}")
+        if mean_auroc > self.stats["best_mean_auroc"]:
+            print(f"Mean AUROC Increased! Updating best AUROC from {self.stats['best_mean_auroc']} to {mean_auroc}")
 
-                # copy the best model
-                shutil.copy(self.weights_path, self.best_weights_path)
+            # copy the best model
+            shutil.copy(self.weights_path, self.best_weights_path)
 
-                # update log files accordingly
-                print(f"Updating the log file! : {self.best_auroc_log_path}")
-                with open(self.best_auroc_log_path, "a") as f:
-                    f.write(f"(Epoch # {epoch + 1}) AUROC : {mean_auroc}, Learning Rate : {self.stats['lr']}\n")
-                
-                # write stats output
-                # used for resuming model training
-                with open(self.stats_output_path, 'W') as f:
-                    json.dump(self.stats, f)
+            # update log files accordingly
+            print(f"Updating the log file! : {self.best_auroc_log_path}")
+            with open(self.best_auroc_log_path, "a") as f:
+                f.write(f"(Epoch # {epoch + 1}) AUROC : {mean_auroc}, Learning Rate : {self.stats['lr']}\n")
+            
+            # write stats output
+            # used for resuming model training
+            with open(self.stats_output_path, 'W') as f:
+                json.dump(self.stats, f)
 
-                print(f"Update model file : {self.weights_path} --> {self.best_weights_path}")
-                self.stats["best_mean_auroc"] = mean_auroc
-                print("**********************************")
-
-            return
+            print(f"Update model file : {self.weights_path} --> {self.best_weights_path}")
+            self.stats["best_mean_auroc"] = mean_auroc
+            print("**********************************")
+        return
     
 class MultiGPUModelCheckpoint(Callback):
     """

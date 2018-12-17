@@ -1,0 +1,7 @@
+---
+
+- name: Remove CheXNet Client Service
+  docker_service:
+    project_src: roles/chexnet_app
+    build: no
+    state: absent

@@ -15,7 +15,8 @@ services:
     networks: 
       - data-stack-net
     environment:
-      KAFKA_ADVERTISED_HOST_NAME: 172.20.0.1
+      KAFKA_ADVERTISED_HOST_NAME: 172.23.0.1
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
       KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
       KAFKA_MESSAGE_MAX_BYTES: 10000000
     volumes:
@@ -23,3 +24,9 @@ services:
     
 networks: 
     data-stack-net:
+      ipam:
+          driver: default
+          config:
+          -
+            subnet: 172.23.0.0/24
+            gateway: 172.23.0.1

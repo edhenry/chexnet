@@ -1,5 +1,6 @@
 FROM ubuntu:16.04
-MAINTAINER Ed Henry "edward.m.henry@gmail.com"
+
+LABEL maintainer="edhenry@protonmail.com"
 
 RUN apt-get update -y
 
