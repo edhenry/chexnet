@@ -1,0 +1,8 @@
+---
+
+- name: Start CheXNet Client Service
+  docker_service:
+    project_src: roles/chexnet_app
+    build: no
+    state: present
+  register: chexnet_app

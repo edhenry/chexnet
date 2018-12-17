@@ -8,7 +8,8 @@ services:
       - "8500"
       - "8501"
     networks: 
-      - kafka_data-stack-net
+      kafka_data-stack-net:
+        ipv4_address: 172.23.0.9
     volumes:
       - /home/ed/Documents/code/chexnet/experiments/DenseNet121/:/models/DenseNet121
     environment:

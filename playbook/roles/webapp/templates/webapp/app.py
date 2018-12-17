@@ -10,6 +10,7 @@ from confluent_kafka import Producer, Consumer, KafkaError, KafkaException
 import configparser
 import cv2
 import logging
+import json
 import sys
 import time
 from PIL import Image
@@ -72,7 +73,7 @@ def get_results():
     """
     collect_results()
     results = "test_img.png"
-    return render_template('/results.html', results_url=results, file_url=file_url)
+    return render_template('/results.html', results_url=results)
 
 def collect_results():
     
@@ -92,8 +93,11 @@ def collect_results():
             sys.stderr.write('%% %s [%d] at offset %d with key %s: \n' %
                              (msg.topic(), msg.partition(), msg.offset(),
                               str(msg.key())))
-            img_bytes = bytearray(msg.value())
-            image = Image.open(io.BytesIO(img_bytes))
+            msg_contents = json.loads(msg.value())
+            img_bytes = msg_contents['image'].encode('latin-1')
+            img_bytes_array = bytearray()
+            img_bytes_array.extend(img_bytes)
+            image = Image.open(io.BytesIO(img_bytes_array))
             image.save("static/test_img.png")
             return
     return 

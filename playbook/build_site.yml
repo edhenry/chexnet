@@ -6,10 +6,11 @@
   gather_facts: no
   tasks:
     - include: roles/kafka/tasks/build.yml
-    - include: roles/nifi/tasks/build.yml
     - include: roles/airflow/tasks/build.yml
-    - include: roles/webapp/tasks/build.yml
     - include: roles/tf_serving/tasks/build.yml
+    #- include: roles/webapp/tasks/build.yml
+    - include: roles/chexnet_app/tasks/build.yml
+    - include: roles/jupyter_env/tasks/build.yml
 
   vars:
     kafka_file_template: Kafka_File_Pipe.xml

@@ -1,0 +1,7 @@
+---
+
+- name: Start Jupyter Service
+  docker_service:
+    project_src: roles/jupyter_env
+    build: no
+    state: present

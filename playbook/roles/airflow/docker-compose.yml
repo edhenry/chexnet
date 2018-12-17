@@ -6,8 +6,9 @@ services:
     image: puckel/docker-airflow
     ports:
       - "8080"
-    networks: 
-      - kafka_data-stack-net
+    networks:
+      kafka_data-stack-net:
+        ipv4_address: 172.23.0.21
     
 # TODO : custom linkage between docker-compose files for NiFi and Kafka
 # Need to break this out into separate logic at some point or another
