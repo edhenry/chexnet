@@ -3,7 +3,7 @@
 version: '2'
 services:
   tf_serving:
-    image: edhenry/chexnet-client:0.2
+    image: edhenry/chexnet-client:latest
     networks:
       kafka_data-stack-net:
         ipv4_address: 172.23.0.22

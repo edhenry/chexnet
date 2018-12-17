@@ -7,7 +7,7 @@
   tasks: 
     - include: roles/chexnet_app/tasks/destroy.yml
     - include: roles/airflow/tasks/destroy.yml
-    - include: roles/webapp/tasks/destroy.yml
+    #- include: roles/webapp/tasks/destroy.yml
     - include: roles/tf_serving/tasks/destroy.yml
     - include: roles/jupyter_env/tasks/destroy.yml
     - include: roles/kafka/tasks/destroy.yml
