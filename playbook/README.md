@@ -1,26 +1,16 @@
-# CheXNet Pipeline
+# What is this playbook?
 
-This repository is an implementation of the CheXNet solution outlined in [CheXNet: Radiologist-Level Pneumonia Detection on Chest X-Rays with Deep Learning](http://arxiv.org/abs/1711.05225).
+This playbook is used to build a "production" machine learning training and serving pipelines. All of the roles defined within the `roles` directory are self contained instances of [docker-compose](https://docs.docker.com/compose/overview/) driven services. All of the services are outlined below.
 
-# Overview
+## Quickstart for utilizing this playbook 
 
-The goal of this implementation and the surrounding tooling to enable someone whom is interested, generally, in Machine Learning (ML) and would like to understand
-better what an example end to end Machine Learning pipeline might look like. All of the tools and utilities that are used within this implementation
-are open source, highlighting the `open source` and `open science` approach that I think is necessary to allow for further adoption of ML solutions.
+### Supported Platforms
 
-The pipeline is general enough that one can swap the `input` portion and `model` portion of the pipelines to allow for other applications. This example is
-specific to computer vision, however one can feasibly "slot in" another application using the same tooling and rough outline of a pipeline.
+When using the term "supported" it is meant to be understood that this playbook and these plays have all been tested on Ubuntu 16.05
 
-## [Training Procedure](https://www.github.com/edhenry/chexnet/TRAIN.md)
+* Ubuntu 16.04 LTS (Xenial)
 
-## ["Production" Pipeline]()
-
-## Tools and utilities
-
-The pipeline consists of many different tools and utilities. I will provide an outline of each tool and utility below and what they are used for.
-
-I will work through the list starting with data acquisition on through to training and deployment of a machine learning model. I will also cover the
-process of re-training a model and performing AB testing on the two models to measure whether or not a new model has better performance.
+## Services
 
 ### [Jupyter](https://jupyter.org/)
 
@@ -29,12 +19,6 @@ Project Jupyter exists to develop open-source software, open-standards, and serv
 ### [Pachyderm](http://www.pachyderm.io/open_source.html)(WIP)
 
 Pachyderm is used for data versioning and pipelining, like the link above states. This project leverages Pachyderm to create pipelines that are used not only in the preprocessing required for input images, but also for AB testing.
-
-### [Ansible](https://www.ansible.com/overview/how-ansible-works)
-
-Ansible is an automation framework that can be used to define and provision software environments. We use this to provision the tooling required for the end to end pipeline.
-
-There will be another README at the root of the playbooks directory that outlines what each play accomplishes should anyone want to modify or extend the framework.
 
 ### [Docker](https://www.docker.com/why-docker)
 

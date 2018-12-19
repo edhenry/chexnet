@@ -57,7 +57,7 @@ To understand if you have any NVIDIA GPU's in the workstation that you would lik
 
 Steps to get started (GPU) - CPU instructions are similar however one wouldn't use the `--runtime` flag within the docker command.
 
-**As noted above it is important to understand that the container image is prebuilt and has a `sample_config.ini` already present in the image. If one would like to make modifications to the `sample_config.ini` and utilize the docker image for training, the image can be rebuilt using the `Dockerfile.train` file located in the root of this repository**
+***As noted above it is important to understand that the container image is prebuilt and has a `sample_config.ini` already present in the image. If one would like to make modifications to the `sample_config.ini` and utilize the docker image for training, the image can be rebuilt using the `Dockerfile.train` file located in the root of this repository***
 
 1. Download the latest [edhenry/chexnet-train](https://cloud.docker.com/u/edhenry/repository/docker/edhenry/chexnet-train) image from [DockerHub](https://hub.docker.com)
 2. Run the following command for GPU training `docker run -d --runtime=nvidia -v <local of ChestX-ray14 images on local filesystem>:/opt/chexnet/images -v ~./experiments/:/opt/chexnet/experiments/ edhenry/chexnet-train:0.5`
