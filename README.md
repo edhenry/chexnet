@@ -18,11 +18,11 @@ The pipeline consists of many different tools and utilities. I will provide an o
 I will work through the list starting with data acquisition on through to training and deployment of a machine learning model. I will also cover the
 process of re-training a model and performing AB testing on the two models to measure whether or not a new model has better performance.
 
-### [Flask](http://flask.pocoo.org/)
+### [Jupyter](https://jupyter.org/)
 
-Flask is a microframework used for creating web content. This will be used within the project as a UI for uploading images that we would like to run through our model.
+Project Jupyter exists to develop open-source software, open-standards, and services for interactive computing across dozens of programming languages. This will be used within the project as a UI for uploading images that we would like to run through our model.
 
-### [Pachyderm](http://www.pachyderm.io/open_source.html)
+### [Pachyderm](http://www.pachyderm.io/open_source.html)(WIP)
 
 Pachyderm is used for data versioning and pipelining, like the link above states. This project leverages Pachyderm to create pipelines that are used not only in the preprocessing required for input images, but also for AB testing.
 
