@@ -11,7 +11,7 @@ are open source, highlighting the `open source` and `open science` approach that
 The pipeline is general enough that one can swap the `input` portion and `model` portion of the pipelines to allow for other applications. This example is
 specific to computer vision, however one can feasibly "slot in" another application using the same tooling and rough outline of a pipeline.
 
-## [Training Procedure](https://www.github.com/edhenry/chexnet/TRAIN.md)
+## [Training Procedure](https://github.com/edhenry/chexnet/blob/master/TRAIN.md)
 
 ## ["Production" Pipeline]()
 
