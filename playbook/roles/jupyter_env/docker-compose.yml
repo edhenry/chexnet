@@ -10,6 +10,8 @@ services:
     entrypoint: [jupyter, notebook, --allow-root]
     volumes:
       - /home/ed/Documents/code/chexnet:/notebooks/jupyter_env
+    environment:
+      JUPYTER_TOKEN: "demo"
 
 # TODO : custom linkage between docker-compose files for NiFi and Kafka
 # Need to break this out into separate logic at some point or another

@@ -13,7 +13,7 @@ specific to computer vision, however one can feasibly "slot in" another applicat
 
 ## [Training Procedure](https://github.com/edhenry/chexnet/blob/master/TRAIN.md)
 
-## ["Production" Pipeline]()
+## ["Production" Pipeline](https://github.com/edhenry/chexnet/blob/master/PRODUCTION.md)
 
 ## Tools and utilities
 
@@ -26,7 +26,7 @@ process of re-training a model and performing AB testing on the two models to me
 
 Project Jupyter exists to develop open-source software, open-standards, and services for interactive computing across dozens of programming languages. This will be used within the project as a UI for uploading images that we would like to run through our model.
 
-### [Pachyderm](http://www.pachyderm.io/open_source.html)(WIP)
+### [Pachyderm](http://www.pachyderm.io/open_source.html) - (WIP)
 
 Pachyderm is used for data versioning and pipelining, like the link above states. This project leverages Pachyderm to create pipelines that are used not only in the preprocessing required for input images, but also for AB testing.
 
