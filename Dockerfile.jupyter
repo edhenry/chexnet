@@ -1,0 +1,3 @@
+FROM edhenry/chexnet-jupyter:latest
+
+COPY ["./CheXNet Workflow Example.ipynb", "/notebooks/jupyter_env"]

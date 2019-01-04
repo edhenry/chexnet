@@ -3,13 +3,12 @@
 version: '2'
 services:
   ui:
-    image: edhenry/chexnet-jupyter:0.1
+    image: edhenry/chexnet-jupyter:latest
+    build: .
     networks: 
       kafka_data-stack-net:
         ipv4_address: 172.23.0.20
     entrypoint: [jupyter, notebook, --allow-root]
-    volumes:
-      - /home/ed/Documents/code/chexnet:/notebooks/jupyter_env
     environment:
       JUPYTER_TOKEN: "demo"
 
