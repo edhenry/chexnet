@@ -4,7 +4,6 @@ version: '2'
 services:
   ui:
     image: edhenry/chexnet-jupyter:latest
-    build: .
     networks: 
       kafka_data-stack-net:
         ipv4_address: 172.23.0.20
