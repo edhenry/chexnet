@@ -7,6 +7,7 @@
 To build the "production" pipeline environment using the provided ansible playbook, and plays, issue the following commands:
 
 **1.** `ansible-playbook -i hosts build_site.yml` - this will download all of the required docker containers and build the docker-compose environments accordingly
+
 **2.** `docker ps -a` - verify all of the docker containers are running (image below)
 
 ![verify-docker](diagrams/verify_docker.png)
