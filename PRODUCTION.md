@@ -12,6 +12,7 @@ To build the "production" pipeline environment using the provided ansible playbo
 ![verify-docker](diagrams/verify_docker.png)
 
 **3.** Browse to `http://172.23.0.20:8888/tree?` using your favorite web browser - you will be presented with the login prompt for the jupyter notebook
+
 **4.** Use the password `demo` for the authentication -- you can also use the `Setup a Password` option that will allow you to reset the password to whatever you would like.
 
 ![jupyter-password](diagrams/jupyter-login.png)
