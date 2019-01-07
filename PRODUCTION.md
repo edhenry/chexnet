@@ -18,6 +18,7 @@ To build the "production" pipeline environment using the provided ansible playbo
 ![jupyter-password](diagrams/jupyter-login.png)
 
 **5.** Browse to the `jupyter-env` directory within the notebook UI
+
 **6.** Open the `ChexNet Workflow Example.ipynb` notebook
 
 Once you're within the notebook context you can sequentially execute the notebook cells allowing you to upload an image to the notebook along with publish the image to Kafka where it will then be sent through the trained model being hosted on TensorFlow Serving, and the results will be published back to Kafka which can be retrieved using later cells in the Jupyter Notebook. A diagram of the inference pipeline is shown below : 
@@ -37,7 +38,9 @@ To upload an image and run it through our trained model - follow the below steps
 ![browse](diagrams/browse-fileupload-widget.png)
 
 **2.** Select an image from your local filesystem
+
 **3.** Once this image is uploaded, execute the next block of code within the jupyter notebook and it will display the image you've uploaded.
+
 **4.** Publish the image to Kafka by executing the next block of code with the `producer.produce()` function defined.
 
 ![produce](diagrams/produce.png)
