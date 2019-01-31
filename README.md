@@ -15,6 +15,8 @@ specific to computer vision, however one can feasibly "slot in" another applicat
 
 ## ["Production" Pipeline](https://github.com/edhenry/chexnet/blob/master/PRODUCTION.md)
 
+A video explaining how to get the "production" pipeline up and running on a machine can be found here : https://www.youtube.com/watch?v=AQLgIxQC5g0
+
 ## Tools and utilities
 
 The pipeline consists of many different tools and utilities. I will provide an outline of each tool and utility below and what they are used for.
