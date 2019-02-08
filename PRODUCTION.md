@@ -1,5 +1,9 @@
 # Quickstart for Using a Pre-trained model
 
+## Video Tutorial
+
+A tutorial video around how to get this example up and running can be found here : https://www.youtube.com/watch?v=AQLgIxQC5g0
+
 ## Building the environment with Ansible
 
 ***Note this environment is hard coded using the IP address range of 172.23.0.0/24 -- please be aware that if you have any virtual environments / VPN's utilizing this address range it will not function***
